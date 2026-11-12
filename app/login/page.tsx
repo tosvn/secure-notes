@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { logIn, signUp, type AuthActionState } from "./actions";
 
-const initialState: AuthActionState = { message: "" };
+const initialState: AuthActionState = { message: "", isError: false };
 
 export default function LoginPage() {
   const [loginState, loginAction, isLoggingIn] = useActionState(
@@ -77,12 +77,24 @@ export default function LoginPage() {
         {(loginState.message || signUpState.message) && (
           <div className="mt-4 flex flex-col gap-2" aria-live="polite">
             {loginState.message && (
-              <p className="text-sm text-red-700 dark:text-red-400">
+              <p
+                className={
+                  loginState.isError
+                    ? "text-sm text-red-700 dark:text-red-400"
+                    : "text-sm text-green-700 dark:text-green-400"
+                }
+              >
                 {loginState.message}
               </p>
             )}
             {signUpState.message && (
-              <p className="text-sm text-red-700 dark:text-red-400">
+              <p
+                className={
+                  signUpState.isError
+                    ? "text-sm text-red-700 dark:text-red-400"
+                    : "text-sm text-green-700 dark:text-green-400"
+                }
+              >
                 {signUpState.message}
               </p>
             )}

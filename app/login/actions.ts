@@ -5,6 +5,7 @@ import { createClient } from "../../lib/supabase/server";
 
 export type AuthActionState = {
   message: string;
+  isError: boolean;
 };
 
 function getCredentials(formData: FormData) {
@@ -32,14 +33,23 @@ export async function logIn(
 ): Promise<AuthActionState> {
   const credentials = getCredentials(formData);
   if (!credentials) {
-    return { message: invalidCredentialsMessage };
+    return { message: invalidCredentialsMessage, isError: true };
   }
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword(credentials);
 
   if (error) {
-    return { message: "Wrong email or password." };
+    if (error.code === "email_not_confirmed") {
+      return {
+        message:
+          "Please confirm your email before logging in. " +
+          "Check your inbox for the confirmation link.",
+        isError: true,
+      };
+    }
+
+    return { message: "Wrong email or password.", isError: true };
   }
 
   redirect("/");
@@ -51,14 +61,22 @@ export async function signUp(
 ): Promise<AuthActionState> {
   const credentials = getCredentials(formData);
   if (!credentials) {
-    return { message: invalidCredentialsMessage };
+    return { message: invalidCredentialsMessage, isError: true };
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signUp(credentials);
+  const { data, error } = await supabase.auth.signUp(credentials);
 
   if (error) {
-    return { message: error.message };
+    return { message: error.message, isError: true };
+  }
+
+  if (!data.session) {
+    return {
+      message:
+        "If this is a new account, check your email for a confirmation link before logging in.",
+      isError: false,
+    };
   }
 
   redirect("/");

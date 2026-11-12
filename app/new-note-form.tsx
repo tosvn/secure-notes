@@ -26,7 +26,6 @@ export default function NewNoteForm() {
             id="title"
             name="title"
             type="text"
-            required
           />
         </div>
         <div className="flex flex-col gap-2">

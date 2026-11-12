@@ -1,7 +1,10 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { logOut } from "./actions";
 import NewNoteForm from "./new-note-form";
+import DeleteNoteButton from "./notes/delete-note-button";
 import { createClient } from "../lib/supabase/server";
 
 function AccountFallback() {
@@ -20,6 +23,7 @@ function NotesFallback() {
 }
 
 async function AccountHeader() {
+  await connection();
   const supabase = await createClient();
   const {
     data: { user },
@@ -55,6 +59,7 @@ async function AccountHeader() {
 }
 
 async function NotesList() {
+  await connection();
   const supabase = await createClient();
   const { data: notes, error } = await supabase
     .from("notes")
@@ -97,6 +102,15 @@ async function NotesList() {
                 <p className="mt-4 break-words whitespace-pre-wrap text-sm leading-6 text-zinc-700 dark:text-zinc-300">
                   {note.body}
                 </p>
+                <div className="mt-5 flex flex-col gap-3 border-t border-zinc-100 pt-4 dark:border-zinc-800 sm:flex-row">
+                  <Link
+                    className="inline-flex min-h-10 items-center justify-center rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-800 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-800"
+                    href={`/notes/${note.id}`}
+                  >
+                    Edit
+                  </Link>
+                  <DeleteNoteButton noteId={note.id} />
+                </div>
               </article>
             </li>
           ))}

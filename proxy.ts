@@ -31,9 +31,15 @@ export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   let redirectPath: string | undefined;
-  if (!user && pathname !== "/login") {
+  const isPublicAuthRoute =
+    pathname === "/login" ||
+    pathname === "/signup" ||
+    pathname === "/auth/callback" ||
+    pathname === "/reset-password";
+
+  if (!user && !isPublicAuthRoute) {
     redirectPath = "/login";
-  } else if (user && pathname === "/login") {
+  } else if (user && (pathname === "/login" || pathname === "/signup")) {
     redirectPath = "/";
   }
 

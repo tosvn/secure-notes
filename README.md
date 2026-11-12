@@ -20,6 +20,40 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Authentication setup
+
+The login and sign-up actions validate email addresses and require passwords to
+be at least 8 characters. Validation runs in the browser and again on the
+server. Passwords may contain any characters; database-backed Supabase Auth is
+used instead of building SQL from form input.
+
+Login failures are rate-limited per normalized email address: after 3 failed
+attempts, sign-in is paused for 10 seconds. Three additional failures require a
+password reset before that address can sign in again. Successful login or a
+successful password reset clears the counter. The database stores only a
+SHA-256 hash of the email for this purpose.
+
+To enable rate limiting and password reset:
+
+1. Run `db/auth-rate-limiting.sql` once in the Supabase SQL Editor.
+2. Set these environment variables locally and in your deployment:
+
+   ```text
+   NEXT_PUBLIC_SITE_URL=http://localhost:3000
+   SUPABASE_SERVICE_ROLE_KEY=your-server-only-service-role-key
+   ```
+
+   Use the deployed site URL for `NEXT_PUBLIC_SITE_URL` in production. Get the
+   service-role key from the Supabase project settings; never prefix it with
+   `NEXT_PUBLIC_` or expose it to browser code.
+3. In Supabase Authentication URL configuration, allow the callback URL
+   `http://localhost:3000/auth/callback` and the matching deployed URL.
+4. Configure Supabase Auth email delivery so password reset messages reach your
+   users.
+
+The login and sign-up forms are separate pages: visitors can create an account
+at `/signup`, and use the link there to return to `/login`.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

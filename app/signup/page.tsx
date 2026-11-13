@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { signUp, type AuthActionState } from "../login/actions";
 import PasswordField from "../password-field";
+import Brand from "../brand";
 
 const initialState: AuthActionState = { message: "", isError: false };
 
@@ -11,24 +12,25 @@ export default function SignupPage() {
   const [state, action, isPending] = useActionState(signUp, initialState);
 
   return (
-    <main className="flex flex-1 items-center justify-center bg-zinc-50 px-4 py-12 dark:bg-black">
-      <section className="w-full max-w-md rounded-2xl bg-white p-8 shadow-sm dark:bg-zinc-900">
-        <h1 className="mb-2 text-2xl font-semibold text-zinc-950 dark:text-zinc-50">
+    <main className="flex flex-1 items-center justify-center px-4 py-12">
+      <section className="w-full max-w-md rounded-[2rem] border border-white/80 bg-white/90 p-8 shadow-[0_24px_70px_-30px_rgba(54,65,112,0.28)] backdrop-blur sm:p-10">
+        <Brand />
+        <h1 className="mb-2 mt-8 text-3xl font-bold tracking-tight text-slate-900">
           Create your account
         </h1>
-        <p className="mb-6 text-sm text-zinc-600 dark:text-zinc-400">
-          Sign up to start keeping your notes private.
+        <p className="mb-6 text-sm leading-6 text-slate-500">
+          A calm, private home for everything you want to remember.
         </p>
         <form action={action} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <label
-              className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
+              className="text-sm font-semibold text-slate-700"
               htmlFor="signup-email"
             >
               Email
             </label>
             <input
-              className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-950 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
+              className="min-h-12 rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
               id="signup-email"
               name="email"
               type="email"
@@ -45,12 +47,12 @@ export default function SignupPage() {
               autoComplete="new-password"
               minLength={8}
             />
-            <span className="text-xs text-zinc-500 dark:text-zinc-400">
+            <span className="text-xs text-slate-500">
               Use at least 8 characters.
             </span>
           </div>
           <button
-            className="mt-2 rounded-lg bg-blue-700 px-4 py-2.5 font-medium text-white transition-colors hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60"
+            className="mt-2 min-h-12 rounded-xl bg-indigo-600 px-4 py-3 font-semibold text-white shadow-lg shadow-indigo-200 transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
             type="submit"
             disabled={isPending}
           >
@@ -61,8 +63,8 @@ export default function SignupPage() {
           <p
             className={`mt-4 text-sm ${
               state.isError
-                ? "text-red-700 dark:text-red-400"
-                : "text-green-700 dark:text-green-400"
+                ? "text-rose-700"
+                : "text-emerald-700"
             }`}
             aria-live="polite"
             role={state.isError ? "alert" : "status"}
@@ -70,10 +72,10 @@ export default function SignupPage() {
             {state.message}
           </p>
         )}
-        <p className="mt-6 border-t border-zinc-200 pt-5 text-center text-sm text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
+        <p className="mt-6 border-t border-slate-100 pt-5 text-center text-sm text-slate-500">
           Already have an account?{" "}
           <Link
-            className="font-medium text-blue-700 hover:underline dark:text-blue-400"
+            className="font-semibold text-indigo-600 hover:text-indigo-800 hover:underline"
             href="/login"
           >
             Log in

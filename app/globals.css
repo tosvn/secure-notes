@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+  --background: #f7f8fc;
+  --foreground: #20243a;
 }
 
 @theme inline {
@@ -12,15 +13,68 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+body {
+  min-height: 100%;
+  background:
+    radial-gradient(ellipse at 12% 0%, rgb(224 231 255 / 75%), transparent 34rem),
+    radial-gradient(ellipse at 95% 18%, rgb(224 242 254 / 65%), transparent 30rem),
+    var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+@keyframes note-enter {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@keyframes note-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.9) translateY(12px);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.025) translateY(-2px);
+  }
+  100% {
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes note-remove {
+  to {
+    opacity: 0;
+    transform: scale(0.9) translateY(8px);
+  }
+}
+
+.note-card-enter {
+  animation: note-enter 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.note-card-pop {
+  animation: note-pop 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.note-card-removing {
+  animation: note-remove 220ms ease-in both;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }

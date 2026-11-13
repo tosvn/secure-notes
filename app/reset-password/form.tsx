@@ -29,7 +29,7 @@ export default function ResetPasswordForm() {
         minLength={8}
       />
       <button
-        className="rounded-lg bg-blue-700 px-4 py-2.5 font-medium text-white transition-colors hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60"
+        className="min-h-12 rounded-xl bg-indigo-600 px-4 py-3 font-semibold text-white shadow-lg shadow-indigo-200 transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
         type="submit"
         disabled={isPending}
       >
@@ -39,8 +39,8 @@ export default function ResetPasswordForm() {
         <p
           className={
             state.isError
-              ? "text-sm text-red-700 dark:text-red-400"
-              : "text-sm text-green-700 dark:text-green-400"
+              ? "text-sm text-rose-700"
+              : "text-sm text-emerald-700"
           }
           aria-live="polite"
           role={state.isError ? "alert" : "status"}

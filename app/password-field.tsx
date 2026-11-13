@@ -12,7 +12,7 @@ type PasswordFieldProps = {
 };
 
 const inputClassName =
-  "w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 pr-12 text-zinc-950 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50";
+  "w-full min-h-12 rounded-xl border border-slate-200 bg-white px-4 py-3 pr-12 text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100";
 
 export default function PasswordField({
   id,
@@ -27,7 +27,7 @@ export default function PasswordField({
   return (
     <div className="flex flex-col gap-2">
       <label
-        className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
+        className="text-sm font-semibold text-slate-700"
         htmlFor={id}
       >
         {label}
@@ -43,7 +43,7 @@ export default function PasswordField({
           required={required}
         />
         <button
-          className="absolute inset-y-0 right-0 inline-flex w-11 items-center justify-center rounded-r-lg bg-white text-zinc-700 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-blue-600 dark:bg-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-100"
+          className="absolute inset-y-0 right-0 inline-flex w-11 items-center justify-center rounded-r-xl bg-white text-slate-500 transition hover:text-indigo-700 focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-indigo-600"
           type="button"
           aria-label={isVisible ? "Hide password" : "Show password"}
           aria-pressed={isVisible}

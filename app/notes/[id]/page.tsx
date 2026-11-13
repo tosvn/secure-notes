@@ -11,7 +11,7 @@ type EditNotePageProps = {
 function EditNoteFallback() {
   return (
     <div
-      className="h-96 animate-pulse rounded-2xl bg-zinc-200 dark:bg-zinc-800"
+      className="h-96 animate-pulse rounded-[1.75rem] bg-white/70"
       aria-label="Loading note"
     />
   );
@@ -59,7 +59,7 @@ async function EditNote({ params }: EditNotePageProps) {
 
 export default function EditNotePage(props: EditNotePageProps) {
   return (
-    <main className="flex-1 bg-zinc-50 px-4 py-6 dark:bg-black sm:py-10">
+    <main className="flex-1 px-4 py-6 sm:py-10">
       <div className="mx-auto w-full max-w-2xl">
         <Suspense fallback={<EditNoteFallback />}>
           <EditNote params={props.params} />

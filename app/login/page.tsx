@@ -8,6 +8,7 @@ import {
 } from "./actions";
 import Link from "next/link";
 import PasswordField from "../password-field";
+import Brand from "../brand";
 
 const initialState: AuthActionState = { message: "", isError: false };
 
@@ -44,9 +45,9 @@ function LoginButton({
   }, [cooldownSeconds]);
 
   return (
-    <>
+    <div className="flex w-full flex-col gap-3">
       <button
-        className="flex-1 rounded-lg bg-blue-700 px-4 py-2.5 font-medium text-white transition-colors hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60"
+        className="min-h-12 w-full rounded-xl bg-indigo-600 px-4 py-3 font-semibold text-white shadow-lg shadow-indigo-200 transition hover:-translate-y-0.5 hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
         type="submit"
         formAction={action}
         disabled={isPending || secondsRemaining > 0}
@@ -58,12 +59,12 @@ function LoginButton({
             : "Log in"}
       </button>
       {secondsRemaining > 0 && (
-        <p className="text-sm text-red-700 dark:text-red-400" role="status">
+        <p className="text-center text-sm text-rose-700" role="status">
           Too many failed sign-in attempts. Try again in {secondsRemaining}{" "}
           seconds.
         </p>
       )}
-    </>
+    </div>
   );
 }
 
@@ -77,21 +78,25 @@ export default function LoginPage() {
     initialState,
   );
   return (
-    <main className="flex flex-1 items-center justify-center bg-zinc-50 px-4 py-12 dark:bg-black">
-      <section className="w-full max-w-md rounded-2xl bg-white p-8 shadow-sm dark:bg-zinc-900">
-        <h1 className="mb-6 text-2xl font-semibold text-zinc-950 dark:text-zinc-50">
-          Secure Notes
+    <main className="flex flex-1 items-center justify-center px-4 py-12">
+      <section className="w-full max-w-md rounded-[2rem] border border-white/80 bg-white/90 p-8 shadow-[0_24px_70px_-30px_rgba(54,65,112,0.28)] backdrop-blur sm:p-10">
+        <Brand />
+        <h1 className="mt-8 text-3xl font-bold tracking-tight text-slate-900">
+          Welcome back
         </h1>
+        <p className="mb-7 mt-2 text-sm leading-6 text-slate-500">
+          Your notes are right where you left them.
+        </p>
         <form className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <label
-              className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
+              className="text-sm font-semibold text-slate-700"
               htmlFor="email"
             >
               Email
             </label>
             <input
-              className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-950 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
+              className="min-h-12 rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
               id="email"
               name="email"
               type="email"
@@ -107,7 +112,7 @@ export default function LoginPage() {
             autoComplete="current-password"
             minLength={8}
           />
-          <div className="flex flex-col gap-3 pt-2 sm:flex-row">
+          <div className="pt-2">
             <LoginButton
               key={loginState.cooldownId ?? "ready"}
               action={loginAction}
@@ -116,7 +121,7 @@ export default function LoginPage() {
             />
           </div>
           <button
-            className="border-t border-zinc-200 pt-4 text-left text-sm font-medium text-blue-700 hover:underline disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:text-blue-400"
+            className="border-t border-slate-100 pt-4 text-left text-sm font-semibold text-indigo-600 transition hover:text-indigo-800 hover:underline disabled:cursor-not-allowed disabled:opacity-60"
             type="submit"
             formAction={resetAction}
             formNoValidate
@@ -131,8 +136,8 @@ export default function LoginPage() {
               <p
                 className={
                   loginState.isError
-                    ? "text-sm text-red-700 dark:text-red-400"
-                    : "text-sm text-green-700 dark:text-green-400"
+                    ? "text-sm text-rose-700"
+                    : "text-sm text-emerald-700"
                 }
               >
                 {loginState.message}
@@ -142,8 +147,8 @@ export default function LoginPage() {
               <p
                 className={
                   resetState.isError
-                    ? "text-sm text-red-700 dark:text-red-400"
-                    : "text-sm text-green-700 dark:text-green-400"
+                    ? "text-sm text-rose-700"
+                    : "text-sm text-emerald-700"
                 }
                 role={resetState.isError ? "alert" : "status"}
               >
@@ -152,10 +157,10 @@ export default function LoginPage() {
             )}
           </div>
         )}
-        <p className="mt-6 border-t border-zinc-200 pt-5 text-center text-sm text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
+        <p className="mt-6 border-t border-slate-100 pt-5 text-center text-sm text-slate-500">
           Don&apos;t have an account?{" "}
           <Link
-            className="font-medium text-blue-700 hover:underline dark:text-blue-400"
+            className="font-semibold text-indigo-600 hover:text-indigo-800 hover:underline"
             href="/signup"
           >
             Sign up

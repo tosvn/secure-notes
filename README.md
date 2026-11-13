@@ -1,4 +1,10 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# NoteNest
+
+A calm, private place to keep your notes organized.
+
+The notes workspace fills the viewport with a sidebar, live search, pastel
+masonry-style note cards, and an in-place editor. The page itself stays fixed;
+the notes canvas scrolls internally when more notes exist than can fit on screen.
 
 ## Getting Started
 
@@ -53,6 +59,15 @@ To enable rate limiting and password reset:
 
 The login and sign-up forms are separate pages: visitors can create an account
 at `/signup`, and use the link there to return to `/login`.
+
+The dashboard also offers permanent account deletion. Users must re-enter their
+password and type `DELETE`; deleting the auth user cascades to their notes.
+This uses the server-only Supabase service-role key.
+
+Notes can be pinned from their cards. Pinned notes remain in the database and
+appear in the dashboard sidebar. Run `db/pin-notes.sql` once in the Supabase SQL
+Editor to add pin support to an existing database; fresh installations include
+the column in `db/schema.sql`.
 
 ## Learn More
 

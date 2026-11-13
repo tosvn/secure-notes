@@ -68,6 +68,91 @@ body {
   pointer-events: none;
 }
 
+.note-card-fit {
+  container-name: note-card;
+  container-type: size;
+}
+
+@container note-card (max-height: 10rem) {
+  .note-card-fit {
+    padding: 0.75rem;
+  }
+
+  .note-card-date {
+    display: none;
+  }
+
+  .note-card-body {
+    margin-top: 0.5rem;
+    -webkit-line-clamp: 1;
+  }
+
+  .note-card-actions {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+  }
+}
+
+@container note-card (max-height: 7rem) {
+  .note-card-fit {
+    padding: 0.5rem;
+  }
+
+  .note-card-title {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    -webkit-line-clamp: 1;
+  }
+
+  .note-card-body {
+    display: -webkit-box;
+    flex: 0 1 auto;
+    margin-top: 0.25rem;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    -webkit-line-clamp: 1;
+  }
+
+  .note-card-actions {
+    margin-top: 0.25rem;
+    border-top: 0;
+    padding-top: 0;
+  }
+
+  .note-card-icon {
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+}
+
+@container note-card (max-height: 4rem) {
+  .note-card-fit {
+    padding: 0.25rem;
+  }
+
+  .note-card-title {
+    font-size: 0.6875rem;
+    line-height: 0.875rem;
+  }
+
+  .note-card-body {
+    margin-top: 0;
+    font-size: 0.625rem;
+    line-height: 0.75rem;
+    -webkit-line-clamp: 1;
+  }
+
+  .note-card-actions {
+    margin-top: 0;
+    gap: 0.125rem;
+  }
+
+  .note-card-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

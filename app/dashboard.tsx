@@ -1,6 +1,13 @@
 "use client";
 
-import { useActionState, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useActionState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import {
   addNote,
   deleteAccount,
@@ -13,6 +20,27 @@ import {
 } from "./actions";
 import Brand from "./brand";
 import PasswordField from "./password-field";
+
+function subscribeToPageSize(onChange: () => void) {
+  const desktop = window.matchMedia("(min-width: 1024px)");
+  const tablet = window.matchMedia("(min-width: 640px)");
+  desktop.addEventListener("change", onChange);
+  tablet.addEventListener("change", onChange);
+
+  return () => {
+    desktop.removeEventListener("change", onChange);
+    tablet.removeEventListener("change", onChange);
+  };
+}
+
+function getPageSizeSnapshot() {
+  if (window.matchMedia("(min-width: 1024px)").matches) return 6;
+  return window.matchMedia("(min-width: 640px)").matches ? 6 : 4;
+}
+
+function getServerPageSizeSnapshot() {
+  return 6;
+}
 
 type Note = {
   id: string;
@@ -77,7 +105,7 @@ function NotePanel({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex justify-end bg-slate-950/25 backdrop-blur-[2px]"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 p-4 backdrop-blur-sm"
       onClick={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
@@ -85,7 +113,7 @@ function NotePanel({
       <section
         aria-labelledby="note-panel-title"
         aria-modal="true"
-        className="flex h-full w-full max-w-xl flex-col overflow-y-auto border-l border-white/80 bg-[#fbfbff] p-6 shadow-2xl sm:p-9"
+        className="flex max-h-[90dvh] w-full max-w-2xl flex-col overflow-y-auto rounded-[1.75rem] border border-white/80 bg-[#fbfbff] p-6 shadow-2xl sm:p-9"
         role="dialog"
       >
         <div className="flex items-start justify-between gap-4">
@@ -192,12 +220,14 @@ function NoteCard({
   note,
   index,
   isNew,
+  onView,
   onEdit,
   onDelete,
 }: {
   note: Note;
   index: number;
   isNew: boolean;
+  onView: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }) {
@@ -208,30 +238,30 @@ function NoteCard({
 
   return (
     <article
-      className={`note-card-enter break-inside-avoid overflow-hidden rounded-[1.5rem] border p-5 shadow-[0_12px_42px_-32px_rgba(54,65,112,0.5)] transition duration-200 hover:shadow-[0_20px_48px_-30px_rgba(54,65,112,0.45)] sm:p-6 ${getNoteColor(note.id)} ${isNew ? "note-card-pop" : ""}`}
+      className={`note-card-fit note-card-enter flex h-full min-h-0 flex-col overflow-hidden rounded-[1.5rem] border p-5 shadow-[0_12px_42px_-32px_rgba(54,65,112,0.5)] transition duration-200 hover:shadow-[0_20px_48px_-30px_rgba(54,65,112,0.45)] sm:p-6 ${getNoteColor(note.id)} ${isNew ? "note-card-pop" : ""}`}
       style={{ animationDelay: `${Math.min(index * 45, 360)}ms` }}
     >
       <button
-        aria-label={`Edit ${note.title}`}
-        className="block w-full text-left"
-        onClick={onEdit}
+        aria-label={`Read ${note.title}`}
+        className="note-card-content flex min-h-0 w-full flex-1 flex-col overflow-hidden text-left"
+        onClick={onView}
         type="button"
       >
-        <h3 className="break-words text-lg font-bold leading-snug text-slate-900">
+        <h3 className="note-card-title line-clamp-2 break-words text-lg font-bold leading-snug text-slate-900">
           {note.title}
         </h3>
-        <p className="mt-2 text-xs font-medium text-slate-500">
+        <p className="note-card-date mt-2 shrink-0 text-xs font-medium text-slate-500">
           {new Date(note.created_at).toLocaleDateString(undefined, {
             month: "short",
             day: "numeric",
             year: "numeric",
           })}
         </p>
-        <p className="mt-4 line-clamp-6 whitespace-pre-wrap break-words text-sm leading-6 text-slate-700">
+        <p className="note-card-body mt-4 min-h-0 flex-1 overflow-hidden whitespace-pre-wrap break-words text-sm leading-6 text-slate-700 line-clamp-3">
           {note.body}
         </p>
       </button>
-      <div className="mt-4 flex items-center justify-end gap-2 border-t border-slate-900/10 pt-3">
+      <div className="note-card-actions mt-4 flex shrink-0 items-center justify-end gap-2 border-t border-slate-900/10 pt-3">
         <form action={pinFormAction}>
           <input
             name="pinned"
@@ -240,7 +270,7 @@ function NoteCard({
           />
           <button
             aria-label={`${note.is_pinned ? "Unpin" : "Pin"} ${note.title}`}
-            className={`inline-flex h-9 w-9 items-center justify-center rounded-xl transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 disabled:cursor-not-allowed disabled:opacity-60 ${
+            className={`note-card-icon inline-flex h-9 w-9 items-center justify-center rounded-xl transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 disabled:cursor-not-allowed disabled:opacity-60 ${
               note.is_pinned
                 ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
                 : "text-slate-500 hover:bg-amber-50 hover:text-amber-700"
@@ -261,7 +291,7 @@ function NoteCard({
         </form>
         <button
           aria-label={`Edit ${note.title}`}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 transition hover:bg-white/70 hover:text-indigo-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+          className="note-card-icon inline-flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 transition hover:bg-white/70 hover:text-indigo-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
           onClick={onEdit}
           title="Edit note"
           type="button"
@@ -283,7 +313,7 @@ function NoteCard({
         </button>
         <button
           aria-label={`Delete ${note.title}`}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 transition hover:bg-rose-50 hover:text-rose-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600"
+          className="note-card-icon inline-flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 transition hover:bg-rose-50 hover:text-rose-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600"
           onClick={onDelete}
           title="Delete note"
           type="button"
@@ -310,6 +340,77 @@ function NoteCard({
         </p>
       )}
     </article>
+  );
+}
+
+function NoteReaderPanel({
+  note,
+  onClose,
+}: {
+  note: Note;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 p-4 backdrop-blur-sm"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <section
+        aria-labelledby="note-reader-title"
+        aria-modal="true"
+        className={`max-h-[85dvh] w-full max-w-3xl overflow-y-auto overscroll-contain rounded-[1.75rem] border p-6 shadow-2xl sm:p-9 ${getNoteColor(note.id)}`}
+        role="dialog"
+      >
+        <div className="flex justify-end">
+          <button
+            aria-label="Close note"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full text-slate-500 transition hover:bg-white/70 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+            onClick={onClose}
+            type="button"
+          >
+            <svg
+              aria-hidden="true"
+              className="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="m7 7 10 10M17 7 7 17"
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeWidth="1.8"
+              />
+            </svg>
+          </button>
+        </div>
+        <h2
+          className="mt-2 break-words text-2xl font-bold leading-tight tracking-tight text-slate-900 sm:text-3xl"
+          id="note-reader-title"
+        >
+          {note.title}
+        </h2>
+        <div className="mt-6 border-t border-slate-900/10 pt-6">
+          {note.body ? (
+            <p className="whitespace-pre-wrap break-words text-base leading-7 text-slate-700">
+              {note.body}
+            </p>
+          ) : (
+            <p className="text-sm italic text-slate-500">This note is empty.</p>
+          )}
+        </div>
+      </section>
+    </div>
   );
 }
 
@@ -405,6 +506,8 @@ function AccountDeletePanel({
     deleteAccount,
     initialState,
   );
+  const [confirmation, setConfirmation] = useState("");
+  const [isConfirmationComplete, setIsConfirmationComplete] = useState(false);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -478,54 +581,88 @@ function AccountDeletePanel({
             </svg>
           </button>
         </div>
-        <form action={formAction} className="mt-7 flex flex-col gap-5">
-          <div className="flex flex-col gap-2">
-            <label
-              className="text-sm font-semibold text-slate-700"
-              htmlFor="delete-confirmation"
-            >
-              Type <span className="font-bold text-rose-700">DELETE</span> to
-              confirm
-            </label>
-            <input
+        {isConfirmationComplete ? (
+          <form
+            action={formAction}
+            autoComplete="off"
+            className="mt-7 flex flex-col gap-5"
+          >
+            <input name="confirmation" type="hidden" value="DELETE" />
+            <PasswordField
+              id="delete-password"
+              label="Current password"
+              name="password"
               autoComplete="off"
-              className="min-h-12 rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-rose-400 focus:ring-4 focus:ring-rose-100"
-              id="delete-confirmation"
-              name="confirmation"
-              required
             />
+            {state.message && (
+              <p
+                className="rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700"
+                role="alert"
+              >
+                {state.message}
+              </p>
+            )}
+            <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
+              <button
+                className="min-h-11 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+                onClick={onClose}
+                type="button"
+              >
+                Keep my account
+              </button>
+              <button
+                className="min-h-11 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+                onClick={() => setIsConfirmationComplete(false)}
+                type="button"
+              >
+                Back
+              </button>
+              <button
+                className="min-h-11 rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={isPending}
+                type="submit"
+              >
+                {isPending ? "Deleting account..." : "Permanently delete"}
+              </button>
+            </div>
+          </form>
+        ) : (
+          <div className="mt-7 flex flex-col gap-5">
+            <div className="flex flex-col gap-2">
+              <label
+                className="text-sm font-semibold text-slate-700"
+                htmlFor="delete-confirmation"
+              >
+                Type <span className="font-bold text-rose-700">DELETE</span> to
+                confirm
+              </label>
+              <input
+                autoComplete="off"
+                className="min-h-12 rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-rose-400 focus:ring-4 focus:ring-rose-100"
+                id="delete-confirmation"
+                onChange={(event) => setConfirmation(event.target.value)}
+                value={confirmation}
+              />
+            </div>
+            <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
+              <button
+                className="min-h-11 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+                onClick={onClose}
+                type="button"
+              >
+                Keep my account
+              </button>
+              <button
+                className="min-h-11 rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={confirmation !== "DELETE"}
+                onClick={() => setIsConfirmationComplete(true)}
+                type="button"
+              >
+                Continue
+              </button>
+            </div>
           </div>
-          <PasswordField
-            id="delete-password"
-            label="Current password"
-            name="password"
-            autoComplete="current-password"
-          />
-          {state.message && (
-            <p
-              className="rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700"
-              role="alert"
-            >
-              {state.message}
-            </p>
-          )}
-          <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
-            <button
-              className="min-h-11 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
-              onClick={onClose}
-              type="button"
-            >
-              Keep my account
-            </button>
-            <button
-              className="min-h-11 rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={isPending}
-              type="submit"
-            >
-              {isPending ? "Deleting account..." : "Permanently delete"}
-            </button>
-          </div>
-        </form>
+        )}
       </section>
     </div>
   );
@@ -533,10 +670,17 @@ function AccountDeletePanel({
 
 export default function Dashboard({ notes, userEmail }: DashboardProps) {
   const [search, setSearch] = useState("");
+  const pageSize = useSyncExternalStore(
+    subscribeToPageSize,
+    getPageSizeSnapshot,
+    getServerPageSizeSnapshot,
+  );
+  const [currentPage, setCurrentPage] = useState(1);
   const [isCreating, setIsCreating] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [noteToDelete, setNoteToDelete] = useState<Note | null>(null);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
+  const [viewingNote, setViewingNote] = useState<Note | null>(null);
   const [newNoteId, setNewNoteId] = useState<string | null>(null);
   const pinnedNotes = useMemo(
     () => notes.filter((note) => note.is_pinned),
@@ -551,11 +695,21 @@ export default function Dashboard({ notes, userEmail }: DashboardProps) {
         note.body.toLocaleLowerCase().includes(query),
     );
   }, [notes, search]);
+  const pageCount = Math.max(1, Math.ceil(filteredNotes.length / pageSize));
+  const activePage = Math.min(currentPage, pageCount);
+  const firstNoteIndex = (activePage - 1) * pageSize;
+  const pageNotes = filteredNotes.slice(
+    firstNoteIndex,
+    firstNoteIndex + pageSize,
+  );
+  const rangeStart = filteredNotes.length === 0 ? 0 : firstNoteIndex + 1;
+  const rangeEnd = Math.min(firstNoteIndex + pageSize, filteredNotes.length);
 
   const handleSaved = useCallback((noteId: string) => {
     setNewNoteId(noteId);
     setIsCreating(false);
     setEditingNote(null);
+    setCurrentPage(1);
   }, []);
 
   const closePanel = useCallback(() => {
@@ -565,6 +719,10 @@ export default function Dashboard({ notes, userEmail }: DashboardProps) {
 
   const closeDeletePanel = useCallback(() => {
     setNoteToDelete(null);
+  }, []);
+
+  const closeReaderPanel = useCallback(() => {
+    setViewingNote(null);
   }, []);
 
   const initials = userEmail.slice(0, 1).toUpperCase();
@@ -619,7 +777,7 @@ export default function Dashboard({ notes, userEmail }: DashboardProps) {
                   <button
                     aria-label={`Open pinned note: ${note.title}`}
                     className="flex min-h-10 w-full items-center justify-center gap-3 rounded-xl px-3 text-left text-sm font-medium text-slate-600 transition hover:bg-indigo-50 hover:text-indigo-700 sm:justify-start"
-                    onClick={() => setEditingNote(note)}
+                    onClick={() => setViewingNote(note)}
                     title={note.title}
                     type="button"
                   >
@@ -731,7 +889,10 @@ export default function Dashboard({ notes, userEmail }: DashboardProps) {
             </svg>
             <input
               className="h-11 w-full rounded-xl border border-slate-200 bg-white/90 pl-10 pr-4 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100"
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) => {
+                setSearch(event.target.value);
+                setCurrentPage(1);
+              }}
               placeholder="Search your notes..."
               type="search"
               value={search}
@@ -799,20 +960,52 @@ export default function Dashboard({ notes, userEmail }: DashboardProps) {
           ) : (
             <div
               aria-label="Notes"
-              className="grid min-h-0 flex-1 auto-rows-max grid-cols-1 items-start gap-4 overflow-y-auto overscroll-contain pr-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4"
+              className="grid min-h-0 flex-1 auto-rows-fr grid-cols-1 gap-3 overflow-hidden sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4"
             >
-              {filteredNotes.map((note, index) => (
-                <div className="min-w-0" key={note.id}>
+              {pageNotes.map((note, index) => (
+                <div className="min-h-0 min-w-0" key={note.id}>
                   <NoteCard
                     index={index}
                     isNew={newNoteId === note.id}
                     note={note}
                     onDelete={() => setNoteToDelete(note)}
                     onEdit={() => setEditingNote(note)}
+                    onView={() => setViewingNote(note)}
                   />
                 </div>
               ))}
             </div>
+          )}
+          {pageCount > 1 && (
+            <nav
+              aria-label="Notes pages"
+              className="mt-3 flex shrink-0 flex-col items-center justify-between gap-2 text-xs text-slate-500 sm:flex-row"
+            >
+              <p>
+                Showing {rangeStart}&ndash;{rangeEnd} of {filteredNotes.length}
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  className="min-h-9 rounded-xl border border-slate-200 bg-white px-3 py-2 font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={activePage === 1}
+                  onClick={() => setCurrentPage(activePage - 1)}
+                  type="button"
+                >
+                  Previous
+                </button>
+                <span aria-live="polite" className="min-w-16 text-center">
+                  Page {activePage} of {pageCount}
+                </span>
+                <button
+                  className="min-h-9 rounded-xl border border-slate-200 bg-white px-3 py-2 font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={activePage === pageCount}
+                  onClick={() => setCurrentPage(activePage + 1)}
+                  type="button"
+                >
+                  Next
+                </button>
+              </div>
+            </nav>
           )}
         </div>
       </section>
@@ -829,6 +1022,9 @@ export default function Dashboard({ notes, userEmail }: DashboardProps) {
           note={noteToDelete}
           onClose={closeDeletePanel}
         />
+      )}
+      {viewingNote && (
+        <NoteReaderPanel note={viewingNote} onClose={closeReaderPanel} />
       )}
       {isDeletingAccount && (
         <AccountDeletePanel

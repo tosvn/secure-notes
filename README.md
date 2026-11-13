@@ -3,8 +3,9 @@
 A calm, private place to keep your notes organized.
 
 The notes workspace fills the viewport with a sidebar, live search, pastel
-masonry-style note cards, and an in-place editor. The page itself stays fixed;
-the notes canvas scrolls internally when more notes exist than can fit on screen.
+note cards, a centered note reader, and an in-place editor. The page stays
+fixed; responsive pagination keeps a readable number of cards on screen
+without scrolling.
 
 ## Getting Started
 

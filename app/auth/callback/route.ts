@@ -2,9 +2,13 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "../../../lib/supabase/server";
 
 export async function GET(request: NextRequest) {
+  const isSignupConfirmation =
+    request.nextUrl.searchParams.get("flow") === "signup";
   const code = request.nextUrl.searchParams.get("code");
   const invalidLinkUrl = new URL(
-    "/reset-password?error=invalid-link",
+    isSignupConfirmation
+      ? "/signup?error=confirmation-link"
+      : "/reset-password?error=invalid-link",
     request.url,
   );
 
@@ -19,5 +23,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(invalidLinkUrl);
   }
 
-  return NextResponse.redirect(new URL("/reset-password", request.url));
+  return NextResponse.redirect(
+    new URL(isSignupConfirmation ? "/" : "/reset-password", request.url),
+  );
 }

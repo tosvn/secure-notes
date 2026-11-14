@@ -43,6 +43,33 @@ function getCredentials(formData: FormData) {
   return { email, password };
 }
 
+type AuthCallbackUrlResult =
+  | { url: string }
+  | { error: "missing-site-url" | "invalid-site-url" };
+
+function getAuthCallbackUrl(flow?: "signup"): AuthCallbackUrlResult {
+  const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  if (!configuredSiteUrl && process.env.NODE_ENV === "production") {
+    return { error: "missing-site-url" };
+  }
+
+  try {
+    const site = new URL(configuredSiteUrl ?? "http://localhost:3000");
+    if (site.protocol !== "https:" && site.protocol !== "http:") {
+      return { error: "invalid-site-url" };
+    }
+
+    const callback = new URL("/auth/callback", site);
+    if (flow) {
+      callback.searchParams.set("flow", flow);
+    }
+
+    return { url: callback.toString() };
+  } catch {
+    return { error: "invalid-site-url" };
+  }
+}
+
 function hashEmail(email: string) {
   return createHash("sha256").update(email.toLowerCase()).digest("hex");
 }
@@ -203,8 +230,19 @@ export async function signUp(
     return { message: invalidCredentialsMessage, isError: true };
   }
 
+  const callback = getAuthCallbackUrl("signup");
+  if ("error" in callback) {
+    return {
+      message: "Email confirmation is not configured. Please contact support.",
+      isError: true,
+    };
+  }
+
   const supabase = await createClient();
-  const { data, error } = await supabase.auth.signUp(credentials);
+  const { data, error } = await supabase.auth.signUp({
+    ...credentials,
+    options: { emailRedirectTo: callback.url },
+  });
 
   if (error) {
     if (
@@ -241,37 +279,20 @@ export async function requestPasswordReset(
     return { message: invalidEmailMessage, isError: true };
   }
 
-  const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL;
-  if (!configuredSiteUrl && process.env.NODE_ENV === "production") {
+  const callback = getAuthCallbackUrl();
+  if ("error" in callback) {
     return {
-      message: "Password reset is not configured. Please contact support.",
-      isError: true,
-    };
-  }
-
-  const siteUrl = configuredSiteUrl ?? "http://localhost:3000";
-  let redirectTo: string;
-  try {
-    const site = new URL(siteUrl);
-    if (site.protocol !== "https:" && site.protocol !== "http:") {
-      return {
-        message: "Password reset is not configured correctly.",
-        isError: true,
-      };
-    }
-
-    const callback = new URL("/auth/callback", site);
-    redirectTo = callback.toString();
-  } catch {
-    return {
-      message: "Password reset is not configured correctly.",
+      message:
+        callback.error === "missing-site-url"
+          ? "Password reset is not configured. Please contact support."
+          : "Password reset is not configured correctly.",
       isError: true,
     };
   }
 
   const supabase = await createClient();
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo,
+    redirectTo: callback.url,
   });
 
   if (error) {

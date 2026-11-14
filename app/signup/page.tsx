@@ -1,15 +1,36 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useSyncExternalStore } from "react";
 import { signUp, type AuthActionState } from "../login/actions";
 import PasswordField from "../password-field";
 import Brand from "../brand";
 
 const initialState: AuthActionState = { message: "", isError: false };
 
+function subscribeToLocation(onChange: () => void) {
+  window.addEventListener("popstate", onChange);
+  return () => window.removeEventListener("popstate", onChange);
+}
+
+function getConfirmationLinkError() {
+  return (
+    new URLSearchParams(window.location.search).get("error") ===
+    "confirmation-link"
+  );
+}
+
+function getServerConfirmationLinkError() {
+  return false;
+}
+
 export default function SignupPage() {
   const [state, action, isPending] = useActionState(signUp, initialState);
+  const confirmationLinkError = useSyncExternalStore(
+    subscribeToLocation,
+    getConfirmationLinkError,
+    getServerConfirmationLinkError,
+  );
 
   return (
     <main className="flex flex-1 items-center justify-center px-4 py-12">
@@ -59,6 +80,15 @@ export default function SignupPage() {
             {isPending ? "Creating account..." : "Create account"}
           </button>
         </form>
+        {confirmationLinkError && (
+          <p
+            className="mt-4 text-sm text-rose-700"
+            role="alert"
+          >
+            This confirmation link is invalid or expired. Try signing in if
+            you&apos;ve already confirmed your account.
+          </p>
+        )}
         {state.message && (
           <p
             className={`mt-4 text-sm ${

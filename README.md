@@ -40,7 +40,7 @@ password reset before that address can sign in again. Successful login or a
 successful password reset clears the counter. The database stores only a
 SHA-256 hash of the email for this purpose.
 
-To enable rate limiting and password reset:
+To enable rate limiting, password reset, and email confirmation:
 
 1. Run `db/auth-rate-limiting.sql` once in the Supabase SQL Editor.
 2. Set these environment variables locally and in your deployment:
@@ -53,10 +53,12 @@ To enable rate limiting and password reset:
    Use the deployed site URL for `NEXT_PUBLIC_SITE_URL` in production. Get the
    service-role key from the Supabase project settings; never prefix it with
    `NEXT_PUBLIC_` or expose it to browser code.
-3. In Supabase Authentication URL configuration, allow the callback URL
-   `http://localhost:3000/auth/callback` and the matching deployed URL.
-4. Configure Supabase Auth email delivery so password reset messages reach your
-   users.
+3. In Supabase Authentication URL configuration, allow both callback URLs:
+   `http://localhost:3000/auth/callback` for password resets and
+   `http://localhost:3000/auth/callback?flow=signup` for signup confirmation.
+   Add the matching URLs for your deployed site.
+4. Configure Supabase Auth email delivery and the confirmation email template
+   to use Supabase's confirmation URL so signup links reach the callback.
 
 The login and sign-up forms are separate pages: visitors can create an account
 at `/signup`, and use the link there to return to `/login`.

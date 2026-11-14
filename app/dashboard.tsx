@@ -48,6 +48,7 @@ type Note = {
   body: string;
   created_at: string;
   is_pinned: boolean;
+  tags: string[];
 };
 
 type DashboardProps = {
@@ -57,21 +58,8 @@ type DashboardProps = {
 
 const initialActionState: NoteActionState = { message: "", isError: false };
 
-const noteColors = [
-  "border-emerald-200/80 bg-emerald-100/70 hover:border-emerald-300",
-  "border-violet-200/80 bg-violet-100/70 hover:border-violet-300",
-  "border-orange-200/80 bg-orange-100/70 hover:border-orange-300",
-  "border-sky-200/80 bg-sky-100/70 hover:border-sky-300",
-  "border-amber-200/80 bg-amber-100/70 hover:border-amber-300",
-];
-
-function getNoteColor(noteId: string) {
-  let hash = 0;
-  for (const character of noteId) {
-    hash = (hash * 31 + character.charCodeAt(0)) | 0;
-  }
-  return noteColors[Math.abs(hash) % noteColors.length];
-}
+const noteSurfaceClassName =
+  "border-indigo-100/90 bg-gradient-to-br from-white via-indigo-50/80 to-sky-50/75 hover:border-indigo-200";
 
 function NotePanel({
   note,
@@ -87,6 +75,34 @@ function NotePanel({
     action,
     initialActionState,
   );
+  const [tags, setTags] = useState(note?.tags ?? []);
+  const [tagInput, setTagInput] = useState("");
+  const draftTag = tagInput.trim();
+  const tagsToSubmit =
+    draftTag &&
+    !tags.some(
+      (tag) => tag.toLocaleLowerCase() === draftTag.toLocaleLowerCase(),
+    )
+      ? [...tags, draftTag]
+      : tags;
+
+  function addTag(value: string) {
+    const tag = value.trim();
+    if (!tag) return;
+    setTags((currentTags) => {
+      if (
+        currentTags.length >= 20 ||
+        currentTags.some(
+          (existingTag) =>
+            existingTag.toLocaleLowerCase() === tag.toLocaleLowerCase(),
+        )
+      ) {
+        return currentTags;
+      }
+      return [...currentTags, tag];
+    });
+    setTagInput("");
+  }
 
   useEffect(() => {
     if (!state.isError && state.noteId) {
@@ -153,6 +169,7 @@ function NotePanel({
           Only you can see what you save here.
         </p>
         <form action={formAction} className="mt-8 flex flex-1 flex-col gap-5">
+          <input name="tags" type="hidden" value={JSON.stringify(tagsToSubmit)} />
           <div className="flex flex-col gap-2">
             <label
               className="text-sm font-semibold text-slate-700"
@@ -169,6 +186,67 @@ function NotePanel({
               placeholder="Give this note a name"
               required
             />
+          </div>
+          <div className="flex flex-col gap-2">
+            <label
+              className="text-sm font-semibold text-slate-700"
+              htmlFor="note-tags"
+            >
+              Tags
+            </label>
+            <div className="flex min-h-12 flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 focus-within:border-indigo-400 focus-within:ring-4 focus-within:ring-indigo-100">
+              {tags.map((tag) => (
+                <span
+                  className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700"
+                  key={tag.toLocaleLowerCase()}
+                >
+                  {tag}
+                  <button
+                    aria-label={`Remove ${tag} tag`}
+                    className="rounded-full px-1 text-indigo-500 hover:bg-indigo-100 hover:text-indigo-900"
+                    onClick={() =>
+                      setTags((currentTags) =>
+                        currentTags.filter(
+                          (currentTag) =>
+                            currentTag.toLocaleLowerCase() !==
+                            tag.toLocaleLowerCase(),
+                        ),
+                      )
+                    }
+                    type="button"
+                  >
+                    &times;
+                  </button>
+                </span>
+              ))}
+              <input
+                autoComplete="off"
+                className="min-w-32 flex-1 bg-transparent px-1 py-1 text-sm text-slate-900 outline-none placeholder:text-slate-400"
+                disabled={tags.length >= 20}
+                id="note-tags"
+                maxLength={32}
+                onChange={(event) => setTagInput(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === ",") {
+                    event.preventDefault();
+                    addTag(tagInput);
+                  } else if (
+                    event.key === "Backspace" &&
+                    tagInput.length === 0 &&
+                    tags.length > 0
+                  ) {
+                    setTags((currentTags) => currentTags.slice(0, -1));
+                  }
+                }}
+                placeholder={
+                  tags.length >= 20 ? "Tag limit reached" : "Type and press Enter"
+                }
+                value={tagInput}
+              />
+            </div>
+            <p className="text-xs text-slate-500">
+              Up to 20 tags, 32 characters each. Use Enter or comma to add.
+            </p>
           </div>
           <div className="flex flex-1 flex-col gap-2">
             <label
@@ -238,7 +316,7 @@ function NoteCard({
 
   return (
     <article
-      className={`note-card-fit note-card-enter flex h-full min-h-0 flex-col overflow-hidden rounded-[1.5rem] border p-5 shadow-[0_12px_42px_-32px_rgba(54,65,112,0.5)] transition duration-200 hover:shadow-[0_20px_48px_-30px_rgba(54,65,112,0.45)] sm:p-6 ${getNoteColor(note.id)} ${isNew ? "note-card-pop" : ""}`}
+      className={`note-card-fit note-card-enter flex h-full min-h-0 flex-col overflow-hidden rounded-[1.5rem] border p-5 shadow-[0_12px_42px_-32px_rgba(54,65,112,0.5)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_20px_48px_-30px_rgba(54,65,112,0.45)] sm:p-6 ${noteSurfaceClassName} ${isNew ? "note-card-pop" : ""}`}
       style={{ animationDelay: `${Math.min(index * 45, 360)}ms` }}
     >
       <button
@@ -257,6 +335,23 @@ function NoteCard({
             year: "numeric",
           })}
         </p>
+        {note.tags.length > 0 && (
+          <div className="note-card-tags mt-2 flex shrink-0 flex-wrap gap-1">
+            {note.tags.slice(0, 3).map((tag) => (
+              <span
+                className="max-w-full truncate rounded-full bg-white/80 px-2 py-0.5 text-[0.65rem] font-semibold text-indigo-700"
+                key={tag}
+              >
+                {tag}
+              </span>
+            ))}
+            {note.tags.length > 3 && (
+              <span className="rounded-full bg-white/80 px-2 py-0.5 text-[0.65rem] font-semibold text-slate-500">
+                +{note.tags.length - 3}
+              </span>
+            )}
+          </div>
+        )}
         <p className="note-card-body mt-4 min-h-0 flex-1 overflow-hidden whitespace-pre-wrap break-words text-sm leading-6 text-slate-700 line-clamp-3">
           {note.body}
         </p>
@@ -369,7 +464,7 @@ function NoteReaderPanel({
       <section
         aria-labelledby="note-reader-title"
         aria-modal="true"
-        className={`max-h-[85dvh] w-full max-w-3xl overflow-y-auto overscroll-contain rounded-[1.75rem] border p-6 shadow-2xl sm:p-9 ${getNoteColor(note.id)}`}
+        className={`max-h-[85dvh] w-full max-w-3xl overflow-y-auto overscroll-contain rounded-[1.75rem] border p-6 shadow-2xl sm:p-9 ${noteSurfaceClassName}`}
         role="dialog"
       >
         <div className="flex justify-end">
@@ -400,6 +495,18 @@ function NoteReaderPanel({
         >
           {note.title}
         </h2>
+        {note.tags.length > 0 && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {note.tags.map((tag) => (
+              <span
+                className="rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-indigo-100"
+                key={tag}
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
         <div className="mt-6 border-t border-slate-900/10 pt-6">
           {note.body ? (
             <p className="whitespace-pre-wrap break-words text-base leading-7 text-slate-700">
@@ -486,6 +593,61 @@ function DeleteNotePanel({
               type="submit"
             >
               {isPending ? "Deleting..." : "Confirm"}
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
+  );
+}
+
+function SignOutPanel({ onClose }: { onClose: () => void }) {
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 p-4 backdrop-blur-sm"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <section
+        aria-labelledby="sign-out-title"
+        aria-modal="true"
+        className="w-full max-w-md rounded-[1.75rem] border border-indigo-100 bg-white p-6 shadow-2xl sm:p-8"
+        role="dialog"
+      >
+        <h2
+          className="text-xl font-bold tracking-tight text-slate-900"
+          id="sign-out-title"
+        >
+          Sign out?
+        </h2>
+        <p className="mt-3 text-sm leading-6 text-slate-600">
+          Are you sure you want to sign out? You will need to log in again to
+          access your notes.
+        </p>
+        <form action={logOut} className="mt-6">
+          <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
+            <button
+              className="min-h-11 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+              onClick={onClose}
+              type="button"
+            >
+              Cancel
+            </button>
+            <button
+              className="min-h-11 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700"
+              type="submit"
+            >
+              Sign out
             </button>
           </div>
         </form>
@@ -677,11 +839,13 @@ export default function Dashboard({ notes, userEmail }: DashboardProps) {
   );
   const [currentPage, setCurrentPage] = useState(1);
   const [isCreating, setIsCreating] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [noteToDelete, setNoteToDelete] = useState<Note | null>(null);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [viewingNote, setViewingNote] = useState<Note | null>(null);
   const [newNoteId, setNewNoteId] = useState<string | null>(null);
+  const hasSearch = search.trim().length > 0;
   const pinnedNotes = useMemo(
     () => notes.filter((note) => note.is_pinned),
     [notes],
@@ -692,7 +856,8 @@ export default function Dashboard({ notes, userEmail }: DashboardProps) {
     return notes.filter(
       (note) =>
         note.title.toLocaleLowerCase().includes(query) ||
-        note.body.toLocaleLowerCase().includes(query),
+        note.body.toLocaleLowerCase().includes(query) ||
+        note.tags.some((tag) => tag.toLocaleLowerCase().includes(query)),
     );
   }, [notes, search]);
   const pageCount = Math.max(1, Math.ceil(filteredNotes.length / pageSize));
@@ -723,6 +888,10 @@ export default function Dashboard({ notes, userEmail }: DashboardProps) {
 
   const closeReaderPanel = useCallback(() => {
     setViewingNote(null);
+  }, []);
+
+  const closeSignOutPanel = useCallback(() => {
+    setIsSigningOut(false);
   }, []);
 
   const initials = userEmail.slice(0, 1).toUpperCase();
@@ -807,29 +976,28 @@ export default function Dashboard({ notes, userEmail }: DashboardProps) {
               {userEmail}
             </span>
           </div>
-          <form action={logOut}>
-            <button
-              className="flex min-h-10 w-full items-center justify-center gap-3 rounded-xl px-3 text-sm font-semibold text-slate-500 transition hover:bg-rose-50 hover:text-rose-700 sm:justify-start"
-              title="Sign out"
-              type="submit"
+          <button
+            className="flex min-h-10 w-full items-center justify-center gap-3 rounded-xl px-3 text-sm font-semibold text-slate-500 transition hover:bg-rose-50 hover:text-rose-700 sm:justify-start"
+            onClick={() => setIsSigningOut(true)}
+            title="Sign out"
+            type="button"
+          >
+            <svg
+              aria-hidden="true"
+              className="h-5 w-5 shrink-0"
+              fill="none"
+              viewBox="0 0 24 24"
             >
-              <svg
-                aria-hidden="true"
-                className="h-5 w-5 shrink-0"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M10 5H5v14h5m5-4 4-3-4-3m4 3H9"
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="1.8"
-                />
-              </svg>
-              <span className="hidden sm:inline">Sign out</span>
-            </button>
-          </form>
+              <path
+                d="M10 5H5v14h5m5-4 4-3-4-3m4 3H9"
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="1.8"
+              />
+            </svg>
+            <span className="hidden sm:inline">Sign out</span>
+          </button>
           <button
             aria-label="Delete account"
             className="mt-1 flex min-h-10 w-full items-center justify-center gap-3 rounded-xl px-3 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 hover:text-rose-800 sm:justify-start"
@@ -900,19 +1068,31 @@ export default function Dashboard({ notes, userEmail }: DashboardProps) {
           </label>
         </header>
         <div className="flex min-h-0 flex-1 flex-col px-4 pb-4 pt-5 sm:px-8 sm:pb-7 sm:pt-7">
-          <div className="mb-4 flex shrink-0 items-end justify-between gap-4">
+          <div
+            className={`mb-4 flex shrink-0 items-end gap-4 ${
+              hasSearch ? "justify-center text-center" : "justify-between"
+            }`}
+          >
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.16em] text-indigo-600">
-                Your collection
+                {hasSearch ? "Matching notes" : "Your collection"}
               </p>
               <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">
-                {search ? "Search results" : "All notes"}
+                {hasSearch ? "Search results" : "All notes"}
               </h2>
+              {hasSearch && (
+                <p className="mt-1 text-sm text-slate-500">
+                  {filteredNotes.length}{" "}
+                  {filteredNotes.length === 1 ? "note" : "notes"} found
+                </p>
+              )}
             </div>
-            <span className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-500 shadow-sm ring-1 ring-slate-100">
-              {filteredNotes.length}{" "}
-              {filteredNotes.length === 1 ? "note" : "notes"}
-            </span>
+            {!hasSearch && (
+              <span className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-500 shadow-sm ring-1 ring-slate-100">
+                {filteredNotes.length}{" "}
+                {filteredNotes.length === 1 ? "note" : "notes"}
+              </span>
+            )}
           </div>
           {filteredNotes.length === 0 ? (
             <div className="flex min-h-0 flex-1 flex-col items-center justify-center rounded-[1.75rem] border border-dashed border-indigo-200 bg-white/60 px-6 text-center">
@@ -943,11 +1123,11 @@ export default function Dashboard({ notes, userEmail }: DashboardProps) {
                 {search ? "No notes found" : "A fresh page"}
               </h3>
               <p className="mt-1 max-w-sm text-sm text-slate-500">
-                {search
+                {hasSearch
                   ? "Try another title or phrase."
                   : "Create your first note and it will be waiting here."}
               </p>
-              {!search && (
+              {!hasSearch && (
                 <button
                   className="mt-5 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700"
                   onClick={() => setIsCreating(true)}
@@ -960,10 +1140,21 @@ export default function Dashboard({ notes, userEmail }: DashboardProps) {
           ) : (
             <div
               aria-label="Notes"
-              className="grid min-h-0 flex-1 auto-rows-fr grid-cols-1 gap-3 overflow-hidden sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4"
+              className={
+                hasSearch
+                  ? "flex min-h-0 flex-1 flex-wrap justify-center gap-3 overflow-y-auto"
+                  : "grid min-h-0 flex-1 auto-rows-fr grid-cols-1 gap-3 overflow-hidden sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4"
+              }
             >
               {pageNotes.map((note, index) => (
-                <div className="min-h-0 min-w-0" key={note.id}>
+                <div
+                  className={
+                    hasSearch
+                      ? "h-56 w-full max-w-sm"
+                      : "min-h-0 min-w-0"
+                  }
+                  key={note.id}
+                >
                   <NoteCard
                     index={index}
                     isNew={newNoteId === note.id}
@@ -1026,6 +1217,7 @@ export default function Dashboard({ notes, userEmail }: DashboardProps) {
       {viewingNote && (
         <NoteReaderPanel note={viewingNote} onClose={closeReaderPanel} />
       )}
+      {isSigningOut && <SignOutPanel onClose={closeSignOutPanel} />}
       {isDeletingAccount && (
         <AccountDeletePanel
           userEmail={userEmail}

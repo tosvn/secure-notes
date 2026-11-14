@@ -31,7 +31,7 @@ async function HomeDashboard() {
 
   const { data: notes, error } = await supabase
     .from("notes")
-    .select("id, title, body, created_at, is_pinned")
+    .select("id, title, body, created_at, is_pinned, tags")
     .order("created_at", { ascending: false });
 
   if (error) {

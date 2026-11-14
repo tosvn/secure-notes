@@ -34,8 +34,6 @@ export async function proxy(request: NextRequest) {
   const isPublicAuthRoute =
     pathname === "/login" ||
     pathname === "/signup" ||
-    pathname === "/auth/callback" ||
-    pathname === "/reset-password" ||
     pathname === "/account-deleted";
 
   if (!user && !isPublicAuthRoute) {

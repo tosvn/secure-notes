@@ -20,6 +20,47 @@ function isValidNoteId(noteId: string) {
   return /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(noteId);
 }
 
+function getNoteTags(formData: FormData): string[] | null {
+  const value = formData.get("tags");
+  if (value === null) return [];
+  if (typeof value !== "string") return null;
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    return null;
+  }
+
+  if (
+    !Array.isArray(parsed) ||
+    parsed.length > 20 ||
+    parsed.some(
+      (tag) =>
+        typeof tag !== "string" ||
+        tag.trim().length === 0 ||
+        [...tag.trim()].length > 32,
+    )
+  ) {
+    return null;
+  }
+
+  const uniqueTags: string[] = [];
+  for (const tag of parsed) {
+    const trimmedTag = tag.trim();
+    if (
+      !uniqueTags.some(
+        (existingTag) =>
+          existingTag.toLocaleLowerCase() === trimmedTag.toLocaleLowerCase(),
+      )
+    ) {
+      uniqueTags.push(trimmedTag);
+    }
+  }
+
+  return uniqueTags;
+}
+
 export async function logOut() {
   const supabase = await createClient();
   const { error } = await supabase.auth.signOut();
@@ -125,6 +166,7 @@ export async function addNote(
 ): Promise<NoteActionState> {
   const title = formData.get("title");
   const body = formData.get("body");
+  const tags = getNoteTags(formData);
 
   if (typeof title !== "string" || title.trim() === "") {
     return { message: "Please enter a title.", isError: true };
@@ -132,6 +174,13 @@ export async function addNote(
 
   if (typeof body !== "string") {
     return { message: "Please enter valid note text.", isError: true };
+  }
+
+  if (!tags) {
+    return {
+      message: "Use up to 20 tags, each no longer than 32 characters.",
+      isError: true,
+    };
   }
 
   const supabase = await createClient();
@@ -150,7 +199,7 @@ export async function addNote(
 
   const { data: note, error } = await supabase
     .from("notes")
-    .insert({ title: title.trim(), body })
+    .insert({ title: title.trim(), body, tags })
     .select("id")
     .single();
 
@@ -173,6 +222,7 @@ export async function updateNote(
 
   const title = formData.get("title");
   const body = formData.get("body");
+  const tags = getNoteTags(formData);
 
   if (typeof title !== "string" || title.trim() === "") {
     return { message: "Please enter a title.", isError: true };
@@ -180,6 +230,13 @@ export async function updateNote(
 
   if (typeof body !== "string") {
     return { message: "Please enter valid note text.", isError: true };
+  }
+
+  if (!tags) {
+    return {
+      message: "Use up to 20 tags, each no longer than 32 characters.",
+      isError: true,
+    };
   }
 
   const supabase = await createClient();
@@ -201,6 +258,7 @@ export async function updateNote(
     .update({
       title: title.trim(),
       body,
+      tags,
       updated_at: new Date().toISOString(),
     })
     .eq("id", noteId)

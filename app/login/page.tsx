@@ -1,82 +1,16 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
-import {
-  logIn,
-  requestPasswordReset,
-  type AuthActionState,
-} from "./actions";
+import { useActionState } from "react";
+import { logIn, type AuthActionState } from "./actions";
 import Link from "next/link";
 import PasswordField from "../password-field";
 import Brand from "../brand";
 
 const initialState: AuthActionState = { message: "", isError: false };
 
-type FormAction = (formData: FormData) => void | Promise<void>;
-
-function LoginButton({
-  action,
-  isPending,
-  cooldownSeconds,
-}: {
-  action: FormAction;
-  isPending: boolean;
-  cooldownSeconds: number;
-}) {
-  const [secondsRemaining, setSecondsRemaining] = useState(cooldownSeconds);
-
-  useEffect(() => {
-    if (cooldownSeconds === 0) {
-      return;
-    }
-
-    const timer = window.setInterval(() => {
-      setSecondsRemaining((remaining) => {
-        if (remaining <= 1) {
-          window.clearInterval(timer);
-          return 0;
-        }
-
-        return remaining - 1;
-      });
-    }, 1000);
-
-    return () => window.clearInterval(timer);
-  }, [cooldownSeconds]);
-
-  return (
-    <div className="flex w-full flex-col gap-3">
-      <button
-        className="min-h-12 w-full rounded-xl bg-indigo-600 px-4 py-3 font-semibold text-white shadow-lg shadow-indigo-200 transition hover:-translate-y-0.5 hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
-        type="submit"
-        formAction={action}
-        disabled={isPending || secondsRemaining > 0}
-      >
-        {isPending
-          ? "Logging in..."
-          : secondsRemaining > 0
-            ? `Try again in ${secondsRemaining}s`
-            : "Log in"}
-      </button>
-      {secondsRemaining > 0 && (
-        <p className="text-center text-sm text-rose-700" role="status">
-          Too many failed sign-in attempts. Try again in {secondsRemaining}{" "}
-          seconds.
-        </p>
-      )}
-    </div>
-  );
-}
-
 export default function LoginPage() {
-  const [loginState, loginAction, isLoggingIn] = useActionState(
-    logIn,
-    initialState,
-  );
-  const [resetState, resetAction, isRequestingReset] = useActionState(
-    requestPasswordReset,
-    initialState,
-  );
+  const [state, action, isPending] = useActionState(logIn, initialState);
+
   return (
     <main className="flex flex-1 items-center justify-center px-4 py-12">
       <section className="w-full max-w-md rounded-[2rem] border border-white/80 bg-white/90 p-8 shadow-[0_24px_70px_-30px_rgba(54,65,112,0.28)] backdrop-blur sm:p-10">
@@ -87,7 +21,7 @@ export default function LoginPage() {
         <p className="mb-7 mt-2 text-sm leading-6 text-slate-500">
           Your notes are right where you left them.
         </p>
-        <form className="flex flex-col gap-4">
+        <form action={action} autoComplete="off" className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <label
               className="text-sm font-semibold text-slate-700"
@@ -100,7 +34,7 @@ export default function LoginPage() {
               id="email"
               name="email"
               type="email"
-              autoComplete="email"
+              autoComplete="off"
               maxLength={254}
               required
             />
@@ -109,53 +43,27 @@ export default function LoginPage() {
             id="password"
             label="Password"
             name="password"
-            autoComplete="current-password"
+            autoComplete="off"
             minLength={8}
           />
-          <div className="pt-2">
-            <LoginButton
-              key={loginState.cooldownId ?? "ready"}
-              action={loginAction}
-              isPending={isLoggingIn || isRequestingReset}
-              cooldownSeconds={loginState.retryAfterSeconds ?? 0}
-            />
-          </div>
           <button
-            className="border-t border-slate-100 pt-4 text-left text-sm font-semibold text-indigo-600 transition hover:text-indigo-800 hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+            className="mt-2 min-h-12 w-full rounded-xl bg-indigo-600 px-4 py-3 font-semibold text-white shadow-lg shadow-indigo-200 transition hover:-translate-y-0.5 hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
             type="submit"
-            formAction={resetAction}
-            formNoValidate
-            disabled={isRequestingReset || isLoggingIn}
+            disabled={isPending}
           >
-            {isRequestingReset ? "Sending reset link..." : "Reset password"}
+            {isPending ? "Logging in..." : "Log in"}
           </button>
         </form>
-        {(loginState.message || resetState.message) && (
-          <div className="mt-4 flex flex-col gap-2" aria-live="polite">
-            {loginState.message && loginState.retryAfterSeconds === undefined && (
-              <p
-                className={
-                  loginState.isError
-                    ? "text-sm text-rose-700"
-                    : "text-sm text-emerald-700"
-                }
-              >
-                {loginState.message}
-              </p>
-            )}
-            {resetState.message && (
-              <p
-                className={
-                  resetState.isError
-                    ? "text-sm text-rose-700"
-                    : "text-sm text-emerald-700"
-                }
-                role={resetState.isError ? "alert" : "status"}
-              >
-                {resetState.message}
-              </p>
-            )}
-          </div>
+        {state.message && (
+          <p
+            className={`mt-4 text-sm ${
+              state.isError ? "text-rose-700" : "text-emerald-700"
+            }`}
+            aria-live="polite"
+            role={state.isError ? "alert" : "status"}
+          >
+            {state.message}
+          </p>
         )}
         <p className="mt-6 border-t border-slate-100 pt-5 text-center text-sm text-slate-500">
           Don&apos;t have an account?{" "}

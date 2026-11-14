@@ -82,6 +82,10 @@ body {
     display: none;
   }
 
+  .note-card-tags {
+    display: none;
+  }
+
   .note-card-body {
     margin-top: 0.5rem;
     -webkit-line-clamp: 1;

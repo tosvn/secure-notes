@@ -34,43 +34,30 @@ be at least 8 characters. Validation runs in the browser and again on the
 server. Passwords may contain any characters; database-backed Supabase Auth is
 used instead of building SQL from form input.
 
-Login failures are rate-limited per normalized email address: after 3 failed
-attempts, sign-in is paused for 10 seconds. Three additional failures require a
-password reset before that address can sign in again. Successful login or a
-successful password reset clears the counter. The database stores only a
-SHA-256 hash of the email for this purpose.
-
-To enable rate limiting, password reset, and email confirmation:
-
-1. Run `db/auth-rate-limiting.sql` once in the Supabase SQL Editor.
-2. Set these environment variables locally and in your deployment:
-
-   ```text
-   NEXT_PUBLIC_SITE_URL=http://localhost:3000
-   SUPABASE_SERVICE_ROLE_KEY=your-server-only-service-role-key
-   ```
-
-   Use the deployed site URL for `NEXT_PUBLIC_SITE_URL` in production. Get the
-   service-role key from the Supabase project settings; never prefix it with
-   `NEXT_PUBLIC_` or expose it to browser code.
-3. In Supabase Authentication URL configuration, allow both callback URLs:
-   `http://localhost:3000/auth/callback` for password resets and
-   `http://localhost:3000/auth/callback?flow=signup` for signup confirmation.
-   Add the matching URLs for your deployed site.
-4. Configure Supabase Auth email delivery and the confirmation email template
-   to use Supabase's confirmation URL so signup links reach the callback.
+To allow users to sign up and log in without email confirmation, turn off
+**Confirm email** in the Supabase project's Auth settings. Supabase's own
+platform-level abuse protections still apply.
 
 The login and sign-up forms are separate pages: visitors can create an account
 at `/signup`, and use the link there to return to `/login`.
 
 The dashboard also offers permanent account deletion. Users must re-enter their
 password and type `DELETE`; deleting the auth user cascades to their notes.
-This uses the server-only Supabase service-role key.
+This uses the server-only `SUPABASE_SERVICE_ROLE_KEY`; never prefix it with
+`NEXT_PUBLIC_` or expose it to browser code.
+
+If `db/auth-rate-limiting.sql` was previously run in Supabase, run
+`db/remove-auth-rate-limiting.sql` once to remove its unused table and functions.
 
 Notes can be pinned from their cards. Pinned notes remain in the database and
 appear in the dashboard sidebar. Run `db/pin-notes.sql` once in the Supabase SQL
 Editor to add pin support to an existing database; fresh installations include
 the column in `db/schema.sql`.
+
+Notes support up to 20 tags, each up to 32 characters. Tags can be added or
+removed in the note editor, and search matches tags as well as titles and note
+text. Run `db/note-tags.sql` once in the Supabase SQL Editor for an existing
+database; fresh installations include the column in `db/schema.sql`.
 
 ## Learn More
 
